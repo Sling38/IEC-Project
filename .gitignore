@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Cached API responses / bulk data (can be re-downloaded)
+data/cache/*
+!data/cache/.gitkeep
+data/baci/*.csv
+
+# Secrets
+.env
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
