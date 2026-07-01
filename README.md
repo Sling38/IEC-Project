@@ -21,6 +21,69 @@ and caches every response locally so free-tier rate limits don't block downstrea
 \* Comtrade uses the free rate-limited **preview** endpoint with no key; set
 `COMTRADE_API_KEY` to use the full subscription endpoint.
 
+## Checkpoint 1 — Demand signal + ground truth (Samuel: Google Trends + label curation)
+
+Adds the third input signal (real-time **consumer demand**) and the curated
+**ground-truth** dataset that later checkpoints validate predictions against.
+
+| Module | Source | Signal | Key needed? |
+|--------|--------|--------|-------------|
+| [`trends.py`](src/marketfit/ingestion/trends.py) | Google Trends (pytrends) | Consumer search interest for a term in a market | No |
+| [`groundtruth/labels.py`](src/marketfit/groundtruth/labels.py) | — | Outcome-label taxonomy + 1–5 success metric | — |
+| [`groundtruth/cases.py`](src/marketfit/groundtruth/cases.py) | [curated CSV](data/ground_truth/starbucks_market_entries.csv) | Documented historical market-entry outcomes | — |
+
+Google Trends is an unofficial, rate-limited endpoint, so — like Comtrade/World
+Bank — every response is cached under `data/cache/trends/`; `pytrends` is imported
+lazily (only on a cache miss).
+
+### Success metric (defined before modeling)
+
+Every validation case gets one of four outcome labels, each mapped to a **1–5
+entry-viability score**. The Checkpoint 2 agent emits the same 1–5 score, so
+"the prediction matched reality" is concrete and comparable:
+
+| Label | Meaning | Score |
+|---|---|---|
+| Strong Success | Entered and became a large, durable market | 5 |
+| Moderate Success | Entered and sustained a viable presence | 4 |
+| Struggled | Entered but under-performed / grew painfully | 2 |
+| Withdrew | Entered then materially retreated or exited | 1 |
+
+### Ground-truth cases
+
+Seven documented Starbucks (`coffee`, HS `0901`) market entries spanning all four
+labels, each row wired to the other signals via `comtrade_reporter_m49`,
+`google_trends_geo`, and `trends_keyword`, and carrying a `source_url`:
+
+| case_id | country | entry_year | outcome_label |
+|---|---|---|---|
+| SBUX-JPN-1996 | Japan | 1996 | Strong Success |
+| SBUX-CHN-1999 | China | 1999 | Strong Success |
+| SBUX-KOR-1999 | South Korea | 1999 | Strong Success |
+| SBUX-ITA-2018 | Italy | 2018 | Moderate Success |
+| SBUX-IND-2012 | India | 2012 | Moderate Success |
+| SBUX-VNM-2013 | Vietnam | 2013 | Struggled |
+| SBUX-AUS-2000 | Australia | 2000 | Withdrew |
+
+```bash
+# Ground-truth cases + taxonomy (offline) then a live Trends demand snapshot
+python scripts/demo_trends.py --country ITA --keyword Starbucks
+python scripts/demo_trends.py --skip-trends          # offline only
+```
+
+```python
+from marketfit.ingestion import GoogleTrendsClient, iso3_to_geo
+from marketfit.groundtruth import GroundTruthLoader, score_for
+
+# Consumer-demand snapshot: search interest for "Starbucks" in Japan.
+trends = GoogleTrendsClient()
+demand = trends.demand_snapshot("Starbucks", geo=iso3_to_geo("JPN"))
+
+# Curated, validated ground-truth cases (raises if a label/score is inconsistent).
+cases = GroundTruthLoader().load()
+score_for("Withdrew")  # -> 1
+```
+
 ### Install & run
 
 ```bash
@@ -77,16 +140,20 @@ unzip into `data/baci/`, then call `BaciLoader().load_year(<year>)`.
 
 ### Tests
 
-Offline tests exercise all three modules (cache-seeded WB payload, synthetic BACI
-files, sample Comtrade rows) with no network dependency:
+Offline tests exercise every module (cache-seeded WB/Trends payloads, synthetic
+BACI files, sample Comtrade rows, ground-truth consistency) with no network
+dependency:
 
 ```bash
-python tests/test_ingestion.py        # or: python -m pytest tests/
+python -m pytest tests/               # or run each file directly:
+python tests/test_ingestion.py        # Comtrade / BACI / World Bank
+python tests/test_trends.py           # Google Trends normalization + snapshot
+python tests/test_groundtruth.py      # label taxonomy + curated cases
 ```
 
 ## Roadmap
 
-- **Checkpoint 1** ✅ trade + macro ingestion (this) · Google Trends + ground-truth labels (Samuel)
+- **Checkpoint 1** ✅ trade + macro ingestion (Alexander) · ✅ Google Trends + ground-truth labels (Samuel)
 - **Checkpoint 2** scoring model + rationale, validation harness
 - **Checkpoint 3** Streamlit demo UI, final validation
 
