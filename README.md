@@ -149,12 +149,55 @@ python -m pytest tests/               # or run each file directly:
 python tests/test_ingestion.py        # Comtrade / BACI / World Bank
 python tests/test_trends.py           # Google Trends normalization + snapshot
 python tests/test_groundtruth.py      # label taxonomy + curated cases
+python tests/test_features.py         # feature engineering
+python tests/test_scoring.py          # entry-viability scoring model
 ```
+
+## Checkpoint 2 — Scoring model + feature engineering (Alexander)
+
+Turns the three ingested signals into an interpretable feature vector and scores a
+`(product, country)` pair on the **same 1–5 entry-viability scale** the ground-truth
+labels use, so predictions are directly comparable to documented outcomes.
+
+| Module | Role |
+|--------|------|
+| [`features/engineering.py`](src/marketfit/features/engineering.py) | Normalizes signals into 8 `[0,1]` features (size, wealth, growth, price stability, openness, connectivity, existing trade, consumer demand) |
+| [`scoring/model.py`](src/marketfit/scoring/model.py) | Weighted linear scorer → 1–5 score + success/struggle bucket, with a per-feature contribution breakdown for rationale generation |
+
+Design notes: features use **fixed, documented reference ranges** (not scalers fit
+on the tiny sample) so scores stay stable and explainable. The scorer is a
+transparent **weighted sum** — with only a handful of ground-truth cases a heavy ML
+model would overfit — and it **renormalizes weights** over whichever signals are
+present, so a missing feed neither drags nor inflates the score. Every prediction
+exposes `top_drivers()` / `top_gaps()` to feed the Checkpoint-2 LLM rationale.
+
+```python
+from marketfit.features import FeatureBuilder
+from marketfit.scoring import MarketFitScorer
+
+fv = FeatureBuilder().from_signals(
+    "ITA", "0901",
+    macro=WorldBankClient().latest_snapshot("ITA").pipe(FeatureBuilder.snapshot_to_macro),
+    product_import_usd=1_600_000_000, demand_interest=40,
+)
+result = MarketFitScorer().score(fv)
+print(result.score, result.is_success, result.top_drivers(3))
+```
+
+```bash
+# Score all ground-truth cases from bundled offline fixtures (preview of validation)
+python scripts/demo_scoring.py            # add --calibrate to tune the threshold
+```
+
+Sample run over the 7 curated Starbucks cases (illustrative offline fixtures):
+score within ±1 of the actual label on **5/7**, success/struggle bucket correct on
+**5/7**. Live runs swap the fixtures for real ingestion pulls; Samuel's Checkpoint-2
+validation harness turns this into proper metrics + error analysis.
 
 ## Roadmap
 
 - **Checkpoint 1** ✅ trade + macro ingestion (Alexander) · ✅ Google Trends + ground-truth labels (Samuel)
-- **Checkpoint 2** scoring model + rationale, validation harness
+- **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · validation harness + metrics (Samuel) · LLM rationale
 - **Checkpoint 3** Streamlit demo UI, final validation
 
 GitHub: https://github.com/Sling38/IEC-Project

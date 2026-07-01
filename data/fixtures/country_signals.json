@@ -1,0 +1,31 @@
+{
+  "_comment": "Illustrative offline signal fixtures for the seven ground-truth countries, used by the scoring demo/tests so they run without network access. Macro values are approximate recent World Bank figures (indicator codes match WorldBankClient); product_import_usd is an order-of-magnitude coffee (HS 0901) import figure; demand_interest is an illustrative Google Trends mean (0-100). Live runs replace these with real ingestion pulls.",
+  "JPN": {
+    "macro": {"SP.POP.TOTL": 125700000, "NY.GDP.PCAP.CD": 33800, "NY.GDP.MKTP.KD.ZG": 1.0, "FP.CPI.TOTL.ZG": 2.5, "NE.TRD.GNFS.ZS": 37.0, "IT.NET.USER.ZS": 83.0},
+    "product_import_usd": 1300000000, "demand_interest": 70
+  },
+  "CHN": {
+    "macro": {"SP.POP.TOTL": 1412000000, "NY.GDP.PCAP.CD": 12700, "NY.GDP.MKTP.KD.ZG": 5.2, "FP.CPI.TOTL.ZG": 2.0, "NE.TRD.GNFS.ZS": 38.0, "IT.NET.USER.ZS": 73.0},
+    "product_import_usd": 900000000, "demand_interest": 65
+  },
+  "KOR": {
+    "macro": {"SP.POP.TOTL": 51700000, "NY.GDP.PCAP.CD": 32400, "NY.GDP.MKTP.KD.ZG": 2.6, "FP.CPI.TOTL.ZG": 2.5, "NE.TRD.GNFS.ZS": 96.0, "IT.NET.USER.ZS": 97.0},
+    "product_import_usd": 700000000, "demand_interest": 75
+  },
+  "ITA": {
+    "macro": {"SP.POP.TOTL": 58940000, "NY.GDP.PCAP.CD": 34800, "NY.GDP.MKTP.KD.ZG": 0.7, "FP.CPI.TOTL.ZG": 5.9, "NE.TRD.GNFS.ZS": 63.0, "IT.NET.USER.ZS": 85.0},
+    "product_import_usd": 1600000000, "demand_interest": 40
+  },
+  "IND": {
+    "macro": {"SP.POP.TOTL": 1417000000, "NY.GDP.PCAP.CD": 2400, "NY.GDP.MKTP.KD.ZG": 7.0, "FP.CPI.TOTL.ZG": 6.7, "NE.TRD.GNFS.ZS": 49.0, "IT.NET.USER.ZS": 46.0},
+    "product_import_usd": 120000000, "demand_interest": 55
+  },
+  "VNM": {
+    "macro": {"SP.POP.TOTL": 98200000, "NY.GDP.PCAP.CD": 4100, "NY.GDP.MKTP.KD.ZG": 5.0, "FP.CPI.TOTL.ZG": 3.2, "NE.TRD.GNFS.ZS": 186.0, "IT.NET.USER.ZS": 79.0},
+    "product_import_usd": 90000000, "demand_interest": 45
+  },
+  "AUS": {
+    "macro": {"SP.POP.TOTL": 26000000, "NY.GDP.PCAP.CD": 64500, "NY.GDP.MKTP.KD.ZG": 1.9, "FP.CPI.TOTL.ZG": 6.6, "NE.TRD.GNFS.ZS": 47.0, "IT.NET.USER.ZS": 96.0},
+    "product_import_usd": 700000000, "demand_interest": 30
+  }
+}
