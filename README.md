@@ -151,6 +151,7 @@ python tests/test_trends.py           # Google Trends normalization + snapshot
 python tests/test_groundtruth.py      # label taxonomy + curated cases
 python tests/test_features.py         # feature engineering
 python tests/test_scoring.py          # entry-viability scoring model
+python tests/test_validation.py       # validation harness, metrics, error analysis
 ```
 
 ## Checkpoint 2 — Scoring model + feature engineering (Alexander)
@@ -194,10 +195,49 @@ score within ±1 of the actual label on **5/7**, success/struggle bucket correct
 **5/7**. Live runs swap the fixtures for real ingestion pulls; Samuel's Checkpoint-2
 validation harness turns this into proper metrics + error analysis.
 
+## Checkpoint 2 — Validation harness + metrics + error analysis (Samuel)
+
+Runs the scorer over the curated ground-truth cases and measures how well predictions
+match documented outcomes — the "first validation test on Starbucks for ground-truth
+comparison" — then diagnoses where the model is wrong to drive feature iteration.
+
+| Module | Role |
+|--------|------|
+| [`validation/metrics.py`](src/marketfit/validation/metrics.py) | Score metrics (MAE, RMSE, exact/within-1, bias, Spearman ρ) + bucket metrics (accuracy, precision, recall, F1, confusion) — no scikit-learn/scipy |
+| [`validation/harness.py`](src/marketfit/validation/harness.py) | `ValidationHarness` → `ValidationReport` (per-case table + metrics); in-sample **and** leave-one-out evaluation |
+| [`validation/error_analysis.py`](src/marketfit/validation/error_analysis.py) | Flags bucket + magnitude errors, over/under-prediction bias, and the features most implicated in each miss |
+
+Design notes: metrics are computed for **both** heads the scorer emits — the ordinal
+1–5 score and the binary success/struggle bucket. Because the ground-truth set is
+tiny, the harness reports honest **leave-one-out** accuracy (each case's threshold is
+calibrated on the *other* cases) alongside the optimistic in-sample number, so we
+don't fool ourselves. Error analysis reads each miss's `top_drivers`/`top_gaps` to
+name the signals to revisit.
+
+```bash
+python scripts/demo_validation.py     # per-case table, metrics, LOO, error analysis
+```
+
+```python
+from marketfit.groundtruth import GroundTruthLoader
+from marketfit.validation import ValidationHarness, analyze_errors, load_signal_fixtures
+
+report = ValidationHarness().run(GroundTruthLoader().load(), load_signal_fixtures())
+print(report.summary())               # MAE/RMSE/within-1/bias/ρ + acc/precision/recall/F1
+print(analyze_errors(report).summary())
+```
+
+Sample run over the 7 cases (offline fixtures, default weights): bucket **acc 71%**
+(precision 0.71, recall 1.00) in-sample, **43% under leave-one-out** — the harness
+surfacing the small-sample optimism. Error analysis flags the two over-predicted
+failures (Vietnam, Australia) and implicates `market_size`/`purchasing_power`, i.e.
+the model rewards big/rich markets and misses entrenched local competition — a
+concrete next-iteration signal. *(The point is the harness/metrics, not the accuracy.)*
+
 ## Roadmap
 
 - **Checkpoint 1** ✅ trade + macro ingestion (Alexander) · ✅ Google Trends + ground-truth labels (Samuel)
-- **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · validation harness + metrics (Samuel) · LLM rationale
+- **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · ✅ validation harness + metrics + error analysis (Samuel) · LLM rationale
 - **Checkpoint 3** Streamlit demo UI, final validation
 
 GitHub: https://github.com/Sling38/IEC-Project
