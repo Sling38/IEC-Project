@@ -152,6 +152,7 @@ python tests/test_groundtruth.py      # label taxonomy + curated cases
 python tests/test_features.py         # feature engineering
 python tests/test_scoring.py          # entry-viability scoring model
 python tests/test_validation.py       # validation harness, metrics, error analysis
+python tests/test_demo.py             # demo-UI helpers + app compile check
 ```
 
 ## Checkpoint 2 — Scoring model + feature engineering (Alexander)
@@ -234,10 +235,39 @@ failures (Vietnam, Australia) and implicates `market_size`/`purchasing_power`, i
 the model rewards big/rich markets and misses entrenched local competition — a
 concrete next-iteration signal. *(The point is the harness/metrics, not the accuracy.)*
 
+## Checkpoint 3 — Demo UI (Alexander)
+
+Streamlit interface: enter a `(product, market)` pair and see the predicted 1–5
+entry-viability score, what drives it, and the documented ground-truth outcome when
+the pair is one of the curated cases.
+
+```bash
+streamlit run app/streamlit_app.py
+```
+
+| Piece | Role |
+|--------|------|
+| [`app/streamlit_app.py`](app/streamlit_app.py) | The UI (view layer only): assessment tab + validation tab |
+| [`demo/data.py`](src/marketfit/demo/data.py) | Tested helpers behind the UI: signal assembly (fixtures **or** live pulls), ground-truth lookup, feature→score wrapper |
+
+**Market assessment tab** — score / bucket / composite metrics, the ground-truth
+comparison panel (with source link) when available, a per-feature contribution
+chart (blue = contribution, gray = available weight), top drivers & gaps, and the
+raw input signals.
+
+**Validation tab** — runs the Checkpoint-2 harness live: metrics summary, a
+predicted-vs-actual dumbbell chart across all 7 cases, the per-case table, error
+analysis, plus optional in-sample calibration and leave-one-out evaluation.
+
+Data sources: **bundled fixtures** (offline, the 7 curated markets) or **live APIs**
+(any market — pulls World Bank/Comtrade/Trends through the cached ingestion clients
+and *degrades per signal* if a feed is down, reporting what was skipped; the scorer
+renormalizes over the signals present).
+
 ## Roadmap
 
 - **Checkpoint 1** ✅ trade + macro ingestion (Alexander) · ✅ Google Trends + ground-truth labels (Samuel)
 - **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · ✅ validation harness + metrics + error analysis (Samuel) · LLM rationale
-- **Checkpoint 3** Streamlit demo UI, final validation
+- **Checkpoint 3** ✅ Streamlit demo UI (Alexander) · final validation + documentation (Samuel)
 
 GitHub: https://github.com/Sling38/IEC-Project
