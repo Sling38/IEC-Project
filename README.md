@@ -264,10 +264,24 @@ Data sources: **bundled fixtures** (offline, the 7 curated markets) or **live AP
 and *degrades per signal* if a feed is down, reporting what was skipped; the scorer
 renormalizes over the signals present).
 
+## Checkpoint 3 — Final validation + documentation (Samuel)
+
+Finalized validation results — including a **live-data run** through the real APIs
+(2026-07-15, 20/21 case-signals landed) that confirmed the fixture-based findings:
+bucket accuracy 71% in-sample (equal to the always-success baseline, stated
+explicitly), leave-one-out 57% live vs 43% on fixtures, and the same two
+over-predicted failures (Vietnam, Australia) implicating the missing
+competition/category-maturity signal.
+
+| Document | Contents |
+|---|---|
+| [`docs/final_report.md`](docs/final_report.md) | Final documentation: methods, live + fixture validation results, baseline confrontation, error analysis, limitations, reproducibility |
+| [`docs/checkpoint3_report.md`](docs/checkpoint3_report.md) | Checkpoint 3 class-report draft (milestones, match, evidence, skill learning) |
+
 ## Roadmap
 
 - **Checkpoint 1** ✅ trade + macro ingestion (Alexander) · ✅ Google Trends + ground-truth labels (Samuel)
-- **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · ✅ validation harness + metrics + error analysis (Samuel) · LLM rationale
-- **Checkpoint 3** ✅ Streamlit demo UI (Alexander) · final validation + documentation (Samuel)
+- **Checkpoint 2** ✅ scoring model + feature engineering (Alexander) · ✅ validation harness + metrics + error analysis (Samuel) · LLM rationale → documented as future work ([final report §5–6](docs/final_report.md))
+- **Checkpoint 3** ✅ Streamlit demo UI (Alexander) · ✅ final validation + documentation (Samuel)
 
 GitHub: https://github.com/Sling38/IEC-Project
