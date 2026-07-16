@@ -1,0 +1,15 @@
+# MarketFit demo theme — reference dataviz palette (light mode, six-checks validated).
+[theme]
+base = "light"
+primaryColor = "#2a78d6"           # categorical slot 1 (blue) — accents & focus
+backgroundColor = "#fcfcfb"        # chart/page surface
+secondaryBackgroundColor = "#f0efec"  # sidebar & widget plane (neutral)
+textColor = "#0b0b0b"              # primary ink
+font = "sans serif"
+
+[server]
+headless = true
+runOnSave = true
+
+[browser]
+gatherUsageStats = false
