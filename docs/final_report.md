@@ -204,21 +204,73 @@ flag it immediately, and that is reachable from the Comtrade client we already b
 café density, which none of our three data sources expose. So the corrected feature is a
 partial fix at best, and we report it as untested rather than claim it.
 
+### 4.6 Sensitivity analysis — what actually moves the score
+
+A second diagnostic, prompted by asking what our own inputs contribute:
+`python scripts/experiment_sensitivity.py`.
+
+**The score is mostly the country.** Six of the eight features are pure country
+attributes; only `existing_trade` depends on the product (HS code) and only
+`consumer_demand` depends on the company (the Trends brand keyword):
+
+| Varies with | Features | Weight |
+|---|---|---|
+| Country only | market_size, purchasing_power, growth, price_stability, openness, connectivity | **73%** |
+| Product | existing_trade | 15% |
+| Company | consumer_demand | 12% |
+
+Holding Japan and HS 0901 fixed and sweeping the brand signal across its entire 0–100
+range moves the composite from 0.582 to 0.702 — **one point on the 1–5 scale**. An unknown
+brand and a globally dominant one receive effectively the same assessment.
+
+This is a validity observation, not a bug: MarketFit scores **market attractiveness for a
+product category**, which is what the README and §1 claim. But the ground-truth labels are
+*company* outcomes, and that gap matters — Australia is rich, open, connected and
+coffee-drinking, so the model correctly reports an attractive market while the documented
+label is "Withdrew." A 73%-country model is structurally unable to explain an outcome that
+was decided by company-specific competitive dynamics. That is the same root cause as §4.5,
+stated one level deeper: not one missing feature, but a model largely answering a
+different question than the labels ask.
+
+**The trade feature is calibrated for coffee.** `import_value_range` is a hand-set
+$1M–$10B window:
+
+| Product category | Japan imports (USD) | `existing_trade` |
+|---|---|---|
+| artisanal / niche good | 500,000 | **0.00** (floored) |
+| specialty tea | 20,000,000 | 0.33 |
+| coffee, HS 0901 | 1,300,000,000 | 0.78 |
+| crude petroleum | 120,000,000,000 | **1.00** (saturated) |
+| all goods, TOTAL | 750,000,000,000 | **1.00** (saturated) |
+
+Outside that window the feature is a constant and carries no signal, so it effectively
+drops out of the model for higher-volume or niche categories.
+
 ## 5. Limitations
 
 1. **n = 7.** One flipped case swings bucket accuracy by 14 points; all aggregate metrics
-   carry wide uncertainty. The set must grow (more Starbucks markets, plus non-coffee cases
-   such as Netflix regional launches) before the numbers are statistically defensible.
+   carry wide uncertainty. The set must grow before the numbers are statistically
+   defensible — and per §4.6, it should grow across **more countries**, since additional
+   companies in the same countries would produce near-identical scores.
 2. **Temporal mismatch.** Input signals are current (2022–2026 pulls), while the entries
    occurred 1996–2018. The validation therefore tests "would this market fit *today*,"
    not "as of the entry year." Historical WDI/Comtrade snapshots keyed to `entry_year`
    would fix this; Google Trends only reaches back to 2004.
-3. **Single company, single product category.** All cases are Starbucks/coffee; results may
-   not generalize (the planned Netflix cases also probe the no-trade-signal path).
-4. **No competition feature** — the diagnosed cause of both misses (§4.4). The obvious
+3. **The model scores markets, not companies.** 73% of the weight is country-only; the
+   product contributes 15% and the company 12% (§4.6). Sweeping the brand signal across
+   its full range moves the score by one point. We validate a market-attractiveness model
+   against company-specific outcomes, which caps how well it can ever fit those labels —
+   and adding companies would not test company-specificity the model does not have.
+4. **Product-category calibration.** `existing_trade` is normalized against a hand-set
+   $1M–$10B range chosen for coffee. High-volume categories saturate at 1.0 and niche ones
+   floor at 0.0 (§4.6), so the feature carries no signal outside roughly that window.
+   Normalizing against the country's *total* imports, or a per-category range, would fix it.
+   Note our planned Netflix cases have no HS code at all, which renormalizes the trade
+   feature away entirely and leaves the model 86% country-only.
+5. **No competition feature** — the diagnosed cause of both misses (§4.4). The obvious
    proxy (per-capita imports) was implemented and **rejected on evidence** (§4.5); a
    supply-side replacement is designed but untested.
-5. **LLM rationale not wired.** The scorer exposes per-feature contributions ready for
+6. **LLM rationale not wired.** The scorer exposes per-feature contributions ready for
    prompt-based prose generation; by design the LLM would *explain* the deterministic
    score, never re-decide it. Deferred as the pipeline is fully interpretable without it.
 
@@ -228,7 +280,12 @@ partial fix at best, and we report it as untested rather than claim it.
   *exports* via `get_trade(flow="X")` would flag Vietnam, where the per-capita-imports
   proxy fails (§4.5). Australia needs an incumbent-density signal outside our three
   sources.
-- Grow ground truth past n=7 with sourced non-Starbucks cases.
+- Grow ground truth past n=7 **across more countries** — per §4.6, more companies in the
+  same countries would yield near-identical scores against differing labels.
+- Per-category (or total-imports-relative) trade normalization, so `existing_trade` stops
+  saturating outside coffee-scale volumes (§4.6).
+- Company-level features, if the goal is genuinely company-market fit rather than market
+  attractiveness — otherwise state the narrower claim, which is what we do now.
 - Year-anchored historical signals to remove the temporal mismatch.
 - LLM rationale generation (explainer, cached, never a decider).
 - Retry/backoff in the ingestion clients (Trends rate-limits and WB timeouts were the only
@@ -242,6 +299,7 @@ pip install -r requirements.txt
 python -m pytest tests/                    # 34 tests, all offline
 python scripts/demo_validation.py          # deterministic validation run (fixtures)
 python scripts/experiment_competition.py   # the §4.5 negative result
+python scripts/experiment_sensitivity.py   # the §4.6 weight-split / calibration analysis
 streamlit run app/streamlit_app.py         # demo UI (fixtures or live mode)
 ```
 
