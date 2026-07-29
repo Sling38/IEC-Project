@@ -20,7 +20,7 @@ from typing import Dict, Iterable, List, Tuple
 
 from marketfit.features.engineering import FEATURE_NAMES, FeatureVector
 
-# Default feature weights (sum to 1.0). These encode the two Checkpoint-1 agents:
+# Default feature weights (sum to 1.0). These encode the two signal groups:
 # "macro-fit" (size/wealth/growth/stability/openness/connectivity) and
 # "trade-history + demand" (existing_trade, consumer_demand).
 DEFAULT_WEIGHTS: Dict[str, float] = {

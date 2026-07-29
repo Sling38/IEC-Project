@@ -162,6 +162,48 @@ entrenched local coffee cultures** (Vietnamese café culture; Melbourne espresso
 The model has no feature that can push a rich, big market *down*. This is the concrete
 next-iteration signal: a competitive-intensity / category-maturity feature.
 
+### 4.5 Testing the proposed fix — a negative result
+
+§4.4 prescribes a competitive-intensity / category-maturity feature, proxied by
+**per-capita product imports** and inverse-scored (a market that already consumes a lot of
+the category is saturated, so entry is harder). We implemented it and swept its weight
+against the ground-truth cases — `python scripts/experiment_competition.py`:
+
+| Competition weight | MAE | Within-±1 | Bucket accuracy |
+|---|---|---|---|
+| none (current model) | 1.29 | 71% | 71% |
+| 0.15 | 1.14 | 71% | 71% |
+| 0.25 | 1.29 | **57%** | 71% |
+| 0.35 | 1.29 | **57%** | **57%** |
+
+**The feature does not work.** Accuracy degrades monotonically as it is weighted up, and
+the marginal MAE gain at 0.15 comes from the wrong mechanism. The per-case values show why:
+
+| Case | Outcome | $/capita | Feature (1.0 = open) |
+|---|---|---|---|
+| SBUX-JPN-1996 | Strong Success | 10.34 | 0.17 |
+| SBUX-KOR-1999 | Strong Success | 13.54 | 0.12 |
+| SBUX-ITA-2018 | Moderate Success | 27.15 | 0.02 |
+| SBUX-VNM-2013 | Struggled | 0.92 | 0.55 |
+| SBUX-AUS-2000 | Withdrew | 26.92 | 0.02 |
+
+Two structural faults:
+
+1. **Per-capita imports conflate category *demand* with category *saturation*.** High
+   coffee imports mean "people here buy coffee" — which is favorable for a coffee retailer,
+   not adverse. Japan and Korea are high-import markets and both Strong Successes; the
+   feature penalizes them for precisely the property that made them work.
+2. **Vietnam imports almost nothing because it is a top-two global coffee producer.** It
+   grows its own supply, so the single case the feature exists to fix reads as a wide-open,
+   uncontested market — exactly backwards.
+
+Import volume cannot separate healthy category demand from entrenched local competition.
+The signal that does separate them is domestic **supply**: Vietnam's export volume would
+flag it immediately, and that is reachable from the Comtrade client we already built
+(`get_trade(flow="X")`). Australia would still evade it — its entrenchment was independent
+café density, which none of our three data sources expose. So the corrected feature is a
+partial fix at best, and we report it as untested rather than claim it.
+
 ## 5. Limitations
 
 1. **n = 7.** One flipped case swings bucket accuracy by 14 points; all aggregate metrics
@@ -173,15 +215,19 @@ next-iteration signal: a competitive-intensity / category-maturity feature.
    would fix this; Google Trends only reaches back to 2004.
 3. **Single company, single product category.** All cases are Starbucks/coffee; results may
    not generalize (the planned Netflix cases also probe the no-trade-signal path).
-4. **No competition feature** — the diagnosed cause of both misses (§4.4).
+4. **No competition feature** — the diagnosed cause of both misses (§4.4). The obvious
+   proxy (per-capita imports) was implemented and **rejected on evidence** (§4.5); a
+   supply-side replacement is designed but untested.
 5. **LLM rationale not wired.** The scorer exposes per-feature contributions ready for
    prompt-based prose generation; by design the LLM would *explain* the deterministic
    score, never re-decide it. Deferred as the pipeline is fully interpretable without it.
 
 ## 6. Future work
 
-- Add a competitive-intensity / category-maturity feature (e.g. per-capita product imports,
-  incumbent density) — directly targets both observed misses.
+- A competition feature built on domestic **supply** rather than imports — per-capita
+  *exports* via `get_trade(flow="X")` would flag Vietnam, where the per-capita-imports
+  proxy fails (§4.5). Australia needs an incumbent-density signal outside our three
+  sources.
 - Grow ground truth past n=7 with sourced non-Starbucks cases.
 - Year-anchored historical signals to remove the temporal mismatch.
 - LLM rationale generation (explainer, cached, never a decider).
@@ -193,9 +239,10 @@ next-iteration signal: a competitive-intensity / category-maturity feature.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest tests/            # 34 tests, all offline
-python scripts/demo_validation.py  # deterministic validation run (fixtures)
-streamlit run app/streamlit_app.py # demo UI (fixtures or live mode)
+python -m pytest tests/                    # 34 tests, all offline
+python scripts/demo_validation.py          # deterministic validation run (fixtures)
+python scripts/experiment_competition.py   # the §4.5 negative result
+streamlit run app/streamlit_app.py         # demo UI (fixtures or live mode)
 ```
 
 Everything above runs without network access except the UI's live mode. The test suite
