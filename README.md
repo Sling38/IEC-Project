@@ -1,10 +1,17 @@
 # IEC-Project — MarketFit
 
-**MarketFit** is a multi-agent system that assesses international market-entry
-viability for a `(product, country)` pair by combining three data layers:
-historical **trade flows**, **macroeconomic fit**, and real-time **consumer demand**.
+**MarketFit** assesses international market-entry viability for a `(product, country)`
+pair by combining three data layers — historical **trade flows**, **macroeconomic fit**,
+and real-time **consumer demand** — into a single **1–5 entry-viability score**, validated
+against documented historical market entries.
 
-This repo currently implements the **Checkpoint 1 data-ingestion pipeline**.
+The pipeline is deterministic and interpretable end to end: cached ingestion → feature
+engineering → a transparent weighted-linear scorer → a validation harness. LLM rationale
+generation is designed but deliberately deferred — by design it would *explain* the
+deterministic score, never re-decide it (see [final report](docs/final_report.md) §5).
+
+**All three checkpoints are implemented:** data ingestion (CP1), scoring model +
+validation (CP2), and the Streamlit demo UI (CP3).
 
 ## Checkpoint 1 — Data ingestion (Alexander: Comtrade/BACI + World Bank)
 
